@@ -1,0 +1,3 @@
+[submodule "good-first-issue-repo"]
+	path = good-first-issue-repo
+	url = git@github.com:lauchokyip/good-first-issue-repo.git

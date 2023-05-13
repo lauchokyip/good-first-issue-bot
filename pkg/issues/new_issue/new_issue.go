@@ -12,24 +12,25 @@ import (
 	"github.com/lauchokyip/good-first-issue-bot/pkg/issues/util"
 )
 
-type FilterFunc func(github.Issue) bool
+type FilterFunc func(*github.Issue) bool
 
 type GoodIssues struct {
-	filename string
+	filepath string
 	client   *github.Client
-	labels   []string
+	// labels will be used as or condition
+	labels []string
 
-	filterFunc FilterFunc
+	shouldEvict FilterFunc
 }
 
 func NewDefaultFilter() FilterFunc {
-	return func(issue github.Issue) bool {
+	return func(issue *github.Issue) bool {
 		return time.Since(*issue.CreatedAt) < 24*time.Hour
 	}
 }
 
 func NewGoodIssues(
-	filename string,
+	filepath string,
 	client *github.Client,
 	labels []string,
 
@@ -40,21 +41,15 @@ func NewGoodIssues(
 	}
 
 	return &GoodIssues{
-		filename:   filename,
-		client:     client,
-		labels:     labels,
-		filterFunc: filterFunc,
+		filepath:    filepath,
+		client:      client,
+		labels:      labels,
+		shouldEvict: filterFunc,
 	}
 }
 
 func (g *GoodIssues) GetAll(since time.Time) ([]*github.Issue, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	path := dir + "/" + g.filename
-	f, err := os.Open(path)
+	f, err := os.Open(g.filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -84,17 +79,48 @@ func (g *GoodIssues) GetAll(since time.Time) ([]*github.Issue, error) {
 		return nil, err
 	}
 
-	issues := fromStringsToGithubIssues(
-		context.TODO(),
-		g.client,
-		queries,
-		&github.IssueListByRepoOptions{
-			Labels: g.labels,
-			Since:  since,
-		},
-	)
+	issues := []*github.Issue{}
 
-	return issues, nil
+	// loop through each labels because we want
+	// or condition
+	for _, l := range g.labels {
+		issue := fromStringsToGithubIssues(
+			context.TODO(),
+			g.client,
+			queries,
+			&github.IssueListByRepoOptions{
+				Labels: []string{l},
+				Since:  since,
+			},
+		)
+		if issue != nil {
+			issues = append(issues, issue...)
+		}
+	}
+
+	return g.filterIssues(issues), nil
+}
+
+func (g *GoodIssues) filterIssues(issues []*github.Issue) []*github.Issue {
+	// Create a map to track the occurrence of each element
+	occurrence := make(map[string]bool)
+	uniqueSlice := []*github.Issue{}
+
+	// Iterate over the slice
+	for _, issue := range issues {
+		if g.shouldEvict(issue) {
+			continue
+		}
+
+		// Check if the element is already in the map
+		if !occurrence[issue.GetHTMLURL()] {
+			// Add the element to the map and the uniqueSlice
+			occurrence[issue.GetHTMLURL()] = true
+			uniqueSlice = append(uniqueSlice, issue)
+		}
+	}
+
+	return uniqueSlice
 }
 
 func fromStringsToGithubIssues(
@@ -103,13 +129,14 @@ func fromStringsToGithubIssues(
 	queries []types.IssueQueryWithNumber,
 	opt *github.IssueListByRepoOptions,
 ) []*github.Issue {
-	issues := make([]*github.Issue, len(queries))
+	issues := []*github.Issue{}
 	for _, q := range queries {
 		issue, _, err := client.Issues.ListByRepo(ctx, q.Owner, q.Repo, opt)
 		if err != nil {
 			log.Println(err)
+		} else {
+			issues = append(issues, issue...)
 		}
-		issues = append(issues, issue...)
 	}
 
 	return issues

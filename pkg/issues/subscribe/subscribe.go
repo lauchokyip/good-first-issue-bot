@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/lauchokyip/good-first-issue-bot/pkg/issues/types"
@@ -13,25 +14,36 @@ import (
 
 type FileSubscribed struct {
 	cache    []*github.Issue
-	filename string
+	filepath string
 	client   *github.Client
 }
 
-func NewFileSubscribed(filename string, client *github.Client) *FileSubscribed {
+func NewFileSubscribed(filepath string, client *github.Client) *FileSubscribed {
 	return &FileSubscribed{
-		filename: filename,
+		filepath: filepath,
 		client:   client,
 	}
 }
-
-func (fs *FileSubscribed) GetAll() ([]*github.Issue, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return nil, err
+func fromStringsToNumberedGithubIssues(ctx context.Context, client *github.Client, queries []types.IssueQueryWithNumber) []*github.Issue {
+	issues := []*github.Issue{}
+	for _, q := range queries {
+		issue, _, err := client.Issues.Get(ctx, q.Owner, q.Repo, q.Number)
+		if err != nil {
+			log.Println(err)
+			continue
+		} else {
+			// TODO if closed, delete it from entry
+			if issue.ClosedAt == nil {
+				issues = append(issues, issue)
+			}
+		}
 	}
 
-	path := dir + "/" + fs.filename
-	f, err := os.Open(path)
+	return issues
+}
+
+func (fs *FileSubscribed) GetAll() ([]*github.Issue, error) {
+	f, err := os.Open(fs.filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -73,15 +85,21 @@ func (fs *FileSubscribed) GetAll() ([]*github.Issue, error) {
 	return issues, nil
 }
 
-func fromStringsToNumberedGithubIssues(ctx context.Context, client *github.Client, queries []types.IssueQueryWithNumber) []*github.Issue {
-	issues := make([]*github.Issue, len(queries))
-	for _, q := range queries {
-		issue, _, err := client.Issues.Get(ctx, q.Owner, q.Repo, q.Number)
+func (fs *FileSubscribed) GetInactive(days int) ([]*github.Issue, error) {
+	if fs.cache == nil {
+		_, err := fs.GetAll()
 		if err != nil {
-			log.Println(err)
+			return nil, err
 		}
-		issues = append(issues, issue)
+	}
+	issues := fs.cache
+
+	ret := []*github.Issue{}
+	for _, issue := range issues {
+		if time.Since(*issue.UpdatedAt) > (time.Duration(days) * 24 * time.Hour) {
+			ret = append(ret, issue)
+		}
 	}
 
-	return issues
+	return ret, nil
 }

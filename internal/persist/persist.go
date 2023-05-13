@@ -8,10 +8,11 @@ import (
 
 type Event struct {
 	LastCheckTime time.Time `json:"last_check_time"`
+	Issues        int       `json:"issue_num"`
 }
 
 // persist records last write time
-func Persist(persistPath string) (err error) {
+func Persist(persistPath string, issue int) (err error) {
 	f, err := os.Create(persistPath)
 	if err != nil {
 		return err
@@ -24,7 +25,8 @@ func Persist(persistPath string) (err error) {
 	}()
 
 	newEvent := Event{
-		LastCheckTime: time.Now(),
+		LastCheckTime: time.Now().UTC(),
+		Issues:        issue,
 	}
 	data, err := json.Marshal(&newEvent)
 	if err != nil {
@@ -38,24 +40,39 @@ func Persist(persistPath string) (err error) {
 	return nil
 }
 
-// lastPersist returns isRecent and error
-func LastPersist(persistPath string) (bool, error) {
-	_, err := os.Stat(persistPath)
+// lastPersist retrieves information from persistent storage
+func LastPersist(persistPath string) (isRecent, newDay bool, lastIssue int, err error) {
+	_, err = os.Stat(persistPath)
 	if err != nil {
-		return false, nil
+		return false, false, -1, err
 	}
 
 	data, err := os.ReadFile(persistPath)
 	if err != nil {
-		return false, err
+		return false, false, -1, err
 	}
 	event := Event{}
 	json.Unmarshal(data, &event)
 
-	truncateTime := event.LastCheckTime.Truncate(time.Hour)
-	if time.Since(truncateTime) > time.Hour {
-		return false, nil
+	if isNewDay(event.LastCheckTime) {
+		return false, true, -1, nil
 	}
 
-	return true, nil
+	truncateTime := event.LastCheckTime.Truncate(time.Hour)
+	if time.Since(truncateTime) > time.Hour {
+		return false, false, event.Issues, nil
+	}
+
+	return true, false, event.Issues, nil
+}
+
+func isNewDay(timestamp time.Time) bool {
+	// Get the current date
+	currentDate := time.Now().UTC().Truncate(24 * time.Hour)
+
+	// Get the date of the timestamp
+	timestampDate := timestamp.UTC().Truncate(24 * time.Hour)
+
+	// Compare the dates
+	return timestampDate.After(currentDate)
 }

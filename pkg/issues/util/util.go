@@ -1,9 +1,11 @@
 package util
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
+	"github.com/google/go-github/github"
 	"github.com/lauchokyip/good-first-issue-bot/pkg/issues/types"
 )
 
@@ -40,4 +42,31 @@ func ConvertToAPIEndpoint(urls []string) ([]types.IssueQueryWithNumber, error) {
 	}
 
 	return queries, nil
+}
+
+func SlicesToMap(slices []string) map[string]bool {
+	ret := map[string]bool{}
+
+	for _, ss := range slices {
+		ret[ss] = true
+	}
+
+	return ret
+}
+
+func GetLargestIssueNumber(ctx context.Context, client *github.Client, issue types.IssueQuery) (int, error) {
+	issues, _, err := client.Issues.ListByRepo(ctx, issue.Owner, issue.Repo, &github.IssueListByRepoOptions{})
+	if err != nil {
+		return -1, err
+	}
+
+	// Find the largest issue number
+	var largestIssueNumber int
+	for _, issue := range issues {
+		if issue.GetNumber() > largestIssueNumber {
+			largestIssueNumber = issue.GetNumber()
+		}
+	}
+
+	return largestIssueNumber, nil
 }
