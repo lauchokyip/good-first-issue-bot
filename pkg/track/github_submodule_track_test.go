@@ -11,7 +11,7 @@ const (
 )
 
 func TestFileOperation(t *testing.T) {
-	submodule := NewGitSubModule(basePath)
+	submodule := NewTrackWithGitSubModule(basePath)
 	err := submodule.Add("test", []string{"haha", "haha", "hoho"})
 	if err != nil {
 		t.Fatal(err)

@@ -38,7 +38,7 @@ func getWD() string {
 }
 
 func main() {
-	subModule := track.NewGitSubModule(sourceOfTruth)
+	var tracker track.TrackInputFiles = track.NewTrackWithGitSubModule(sourceOfTruth)
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
 		log.Fatal("GITHUB_TOKEN environment variable is not set")
@@ -49,7 +49,7 @@ func main() {
 	client := github.NewClient(tokenClient)
 
 	go func() {
-		subModule.Update()
+		tracker.Update()
 		time.Sleep(15 * time.Minute)
 	}()
 

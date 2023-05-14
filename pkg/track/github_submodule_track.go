@@ -14,7 +14,7 @@ type GitSubmodule struct {
 	basePath string
 }
 
-func NewGitSubModule(basePath string) *GitSubmodule {
+func NewTrackWithGitSubModule(basePath string) *GitSubmodule {
 	return &GitSubmodule{
 		basePath: basePath,
 	}
