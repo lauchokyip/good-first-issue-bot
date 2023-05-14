@@ -21,9 +21,10 @@ type GoodIssues struct {
 	// labels will be used as or condition
 	labels []string
 
-	shouldEvict FilterFunc
+	filter FilterFunc
 }
 
+// Filter out the
 func NewDefaultFilter() FilterFunc {
 	return func(issue *github.Issue) bool {
 		return time.Since(*issue.CreatedAt) < 24*time.Hour
@@ -35,17 +36,17 @@ func NewGoodIssues(
 	client *github.Client,
 	labels []string,
 
-	filterFunc FilterFunc,
+	filter FilterFunc,
 ) *GoodIssues {
-	if filterFunc == nil {
-		filterFunc = NewDefaultFilter()
+	if filter == nil {
+		filter = NewDefaultFilter()
 	}
 
 	return &GoodIssues{
-		filepath:    filepath,
-		client:      client,
-		labels:      labels,
-		shouldEvict: filterFunc,
+		filepath: filepath,
+		client:   client,
+		labels:   labels,
+		filter:   filter,
 	}
 }
 
@@ -112,7 +113,8 @@ func (g *GoodIssues) filterIssues(issues []*github.Issue) []*github.Issue {
 
 	// Iterate over the slice
 	for _, issue := range issues {
-		if g.shouldEvict(issue) {
+		// outside of filter
+		if !g.filter(issue) {
 			continue
 		}
 
