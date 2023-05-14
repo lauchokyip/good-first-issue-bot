@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/github"
@@ -61,7 +62,10 @@ func (g *GoodIssues) GetAll(since time.Time) ([]*github.Issue, error) {
 	lines := []string{}
 	for scanner.Scan() {
 		line := scanner.Text()
-		lines = append(lines, line)
+		// accept only if it start with https://github.com
+		if strings.HasPrefix(line, "https://github.com") {
+			lines = append(lines, line)
+		}
 	}
 
 	// Check for any errors that occurred during scanning

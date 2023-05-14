@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,9 @@ func ConvertToAPIEndpoint(urls []string) ([]types.IssueQueryWithNumber, error) {
 		// Split the remaining URL into parts
 		parts := strings.Split(url, "/")
 
+		if len(parts) < 2 {
+			return nil, errors.New("urls given should have at least length of 2")
+		}
 		// Extract the owner, repo, and issue number
 		owner := parts[0]
 		repo := parts[1]

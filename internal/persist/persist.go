@@ -2,6 +2,7 @@ package persist
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"time"
 )
@@ -53,6 +54,7 @@ func LastPersist(persistPath string) (isRecent, newDay bool, lastIssue int, err 
 	}
 	event := Event{}
 	json.Unmarshal(data, &event)
+	log.Printf("Last Persistent time is %s\n", event.LastCheckTime)
 
 	if isNewDay(event.LastCheckTime) {
 		return false, true, -1, nil
@@ -67,12 +69,13 @@ func LastPersist(persistPath string) (isRecent, newDay bool, lastIssue int, err 
 }
 
 func isNewDay(timestamp time.Time) bool {
+	day := 24 * time.Hour
 	// Get the current date
-	currentDate := time.Now().UTC().Truncate(24 * time.Hour)
+	currentDate := time.Now().UTC().Truncate(day)
 
 	// Get the date of the timestamp
-	timestampDate := timestamp.UTC().Truncate(24 * time.Hour)
+	timestampDate := timestamp.UTC().Truncate(day)
 
 	// Compare the dates
-	return timestampDate.After(currentDate)
+	return currentDate.After(timestampDate)
 }

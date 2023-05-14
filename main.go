@@ -55,6 +55,7 @@ func main() {
 
 	for {
 		isRecent, isNewDay, issueNum, err := persist.LastPersist(persistPath)
+		log.Printf("isRecent %t, isNewDay %t, issueNum %d\n", isRecent, isNewDay, issueNum)
 		if err != nil {
 			panic(err)
 		}
