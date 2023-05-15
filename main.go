@@ -49,15 +49,21 @@ func main() {
 	client := github.NewClient(tokenClient)
 
 	go func() {
-		tracker.Update()
+		err := tracker.Update()
+		if err != nil {
+			log.Println(err)
+		}
 		time.Sleep(15 * time.Minute)
 	}()
 
 	for {
 		isRecent, isNewDay, issueNum, err := persist.LastPersist(persistPath)
 		log.Printf("isRecent %t, isNewDay %t, issueNum %d\n", isRecent, isNewDay, issueNum)
+
 		if err != nil {
-			panic(err)
+			if _, ok := err.(*os.PathError); !ok {
+				panic(err)
+			}
 		}
 
 		if isNewDay {
@@ -69,8 +75,10 @@ func main() {
 			}
 		}
 
-		log.Println("Sleep for an hour")
-		time.Sleep(time.Hour)
+		nextDuration := time.Now().Truncate(time.Hour).Add(time.Hour)
+		sleepingTime := time.Until(nextDuration)
+		log.Println("Sleep for ", sleepingTime.Minutes(), " minutes")
+		time.Sleep(sleepingTime)
 	}
 }
 
@@ -144,10 +152,14 @@ func doInTheSameDay(ctx context.Context, client *github.Client, issueNum int) {
 		},
 		nil,
 	)
-	goodIssues, err := goodIssuesHandler.GetAll(time.Now().Truncate(time.Hour))
+
+	// offset the time a bit
+	lastHour := time.Now().Add(-5 * time.Minute).Truncate(time.Hour)
+	goodIssues, err := goodIssuesHandler.GetAll(lastHour)
 	if err != nil {
 		panic(err)
 	}
+	log.Println(goodIssues)
 	msg := messages.NewIssues(goodIssues)
 	if len(goodIssues) != 0 {
 		log.Println("found new issues!")

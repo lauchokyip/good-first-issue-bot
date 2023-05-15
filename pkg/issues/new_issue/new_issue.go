@@ -102,13 +102,12 @@ func (g *GoodIssues) GetAll(since time.Time) ([]*github.Issue, error) {
 			issues = append(issues, issue...)
 		}
 	}
-
 	return g.filterIssues(issues), nil
 }
 
 func (g *GoodIssues) filterIssues(issues []*github.Issue) []*github.Issue {
 	// Create a map to track the occurrence of each element
-	occurrence := make(map[string]bool)
+	occurrence := map[string]bool{}
 	uniqueSlice := []*github.Issue{}
 
 	// Iterate over the slice

@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	persistInterval = time.Hour
+)
+
 type Event struct {
 	LastCheckTime time.Time `json:"last_check_time"`
 	Issues        int       `json:"issue_num"`
@@ -26,7 +30,7 @@ func Persist(persistPath string, issue int) (err error) {
 	}()
 
 	newEvent := Event{
-		LastCheckTime: time.Now().UTC(),
+		LastCheckTime: time.Now(),
 		Issues:        issue,
 	}
 	data, err := json.Marshal(&newEvent)
@@ -60,22 +64,24 @@ func LastPersist(persistPath string) (isRecent, newDay bool, lastIssue int, err 
 		return false, true, -1, nil
 	}
 
-	truncateTime := event.LastCheckTime.Truncate(time.Hour)
-	if time.Since(truncateTime) > time.Hour {
+	truncateTime := event.LastCheckTime.Truncate(persistInterval)
+	if time.Since(truncateTime) > persistInterval {
 		return false, false, event.Issues, nil
 	}
 
 	return true, false, event.Issues, nil
 }
 
-func isNewDay(timestamp time.Time) bool {
-	day := 24 * time.Hour
-	// Get the current date
-	currentDate := time.Now().UTC().Truncate(day)
+func truncateToDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
 
+func isNewDay(timestamp time.Time) bool {
+	// Get the current date
+	currentDate := truncateToDay(time.Now())
 	// Get the date of the timestamp
-	timestampDate := timestamp.UTC().Truncate(day)
+	timestampDate := truncateToDay(timestamp)
 
 	// Compare the dates
-	return currentDate.After(timestampDate)
+	return currentDate.Sub(timestampDate) > 0
 }
