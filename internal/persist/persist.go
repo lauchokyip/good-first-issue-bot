@@ -72,15 +72,15 @@ func LastPersist(persistPath string) (isRecent, newDay bool, lastIssue int, err 
 	return true, false, event.Issues, nil
 }
 
-func truncateToDay(t time.Time) time.Time {
+func TruncateToDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
 
 func isNewDay(timestamp time.Time) bool {
 	// Get the current date
-	currentDate := truncateToDay(time.Now())
+	currentDate := TruncateToDay(time.Now())
 	// Get the date of the timestamp
-	timestampDate := truncateToDay(timestamp)
+	timestampDate := TruncateToDay(timestamp)
 
 	// Compare the dates
 	return currentDate.Sub(timestampDate) > 0

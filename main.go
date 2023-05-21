@@ -106,7 +106,7 @@ func doInNewDay(ctx context.Context, client *github.Client) {
 		nil,
 	)
 	oneDay := 24 * time.Hour
-	goodIssues, err := goodIssuesHandler.GetAll(time.Now().Add(-oneDay).Truncate(oneDay))
+	goodIssues, err := goodIssuesHandler.GetAll(persist.TruncateToDay(time.Now().Add(-oneDay)))
 	if err != nil {
 		panic(err)
 	}
@@ -174,4 +174,10 @@ func doInTheSameDay(ctx context.Context, client *github.Client, issueNum int) {
 			panic(err)
 		}
 	}
+
+	rateLimit, _, err := client.RateLimits(ctx)
+	if err != nil {
+		panic(err)
+	}
+	log.Println(rateLimit.String())
 }
