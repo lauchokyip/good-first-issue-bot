@@ -49,11 +49,13 @@ func main() {
 	client := github.NewClient(tokenClient)
 
 	go func() {
-		err := tracker.Update()
-		if err != nil {
-			log.Println(err)
+		for {
+			err := tracker.Update()
+			if err != nil {
+				log.Println(err)
+			}
+			time.Sleep(15 * time.Minute)
 		}
-		time.Sleep(15 * time.Minute)
 	}()
 
 	for {

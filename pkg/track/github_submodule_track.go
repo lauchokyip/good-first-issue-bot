@@ -21,7 +21,8 @@ func NewTrackWithGitSubModule(basePath string) *GitSubmodule {
 }
 
 func (gs *GitSubmodule) Update() error {
-	pullCmd := exec.Command("git", "submodule", "foreach", "git", "pull")
+	log.Println("Running git submodule pull")
+	pullCmd := exec.Command("git", "submodule", "foreach", "git", "pull", "origin", "master")
 	err := pullCmd.Run()
 	if err != nil {
 		return err
@@ -30,12 +31,13 @@ func (gs *GitSubmodule) Update() error {
 }
 
 func (gs *GitSubmodule) PushUpdate() error {
+	log.Println("Running git submodule push")
 	commitCmd := exec.Command("git", "submodule", "foreach", "git", "commit", "-am", "update")
 	err := commitCmd.Run()
 	if err != nil {
 		return err
 	}
-	pushCmd := exec.Command("git", "submodule", "foreach", "git", "commit", "-am", "update")
+	pushCmd := exec.Command("git", "submodule", "foreach", "git", "push", "origin", "master")
 	err = pushCmd.Run()
 	if err != nil {
 		return err

@@ -23,6 +23,14 @@ func TestFileOperation(t *testing.T) {
 	}
 }
 
+func TestPull(t *testing.T) {
+	submodule := NewTrackWithGitSubModule(basePath)
+	err := submodule.Update()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestMain(m *testing.M) {
 	m.Run()
 	os.Remove(basePath + testFile)
